@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "574215419191",
+    "project_id": "toko-ban",
+    "storage_bucket": "toko-ban.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:574215419191:android:30d7e95f1da232a25516b2",
+        "android_client_info": {
+          "package_name": "com.example.toko_ban"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2WFl4VZoZRo4xSkigfiZ8u249vcdd3Bg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
