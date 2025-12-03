@@ -199,7 +199,10 @@ class _LaporanStokScreenState extends State<LaporanStokScreen> {
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
-                                            Text(t.brand,
+                                            Text(
+                                                t.series.isNotEmpty
+                                                    ? '${t.brand} ${t.series}'
+                                                    : t.brand,
                                                 style: const TextStyle(
                                                     fontWeight:
                                                         FontWeight.bold)),
@@ -240,7 +243,11 @@ class _LaporanStokScreenState extends State<LaporanStokScreen> {
                             Column(
                                 children: lowStock
                                     .map((r) => ListTile(
-                                        title: Text((r['tire'] as Tire).brand),
+                                        title: Text((r['tire'] as Tire)
+                                                .series
+                                                .isNotEmpty
+                                            ? '${(r['tire'] as Tire).brand} ${(r['tire'] as Tire).series}'
+                                            : (r['tire'] as Tire).brand),
                                         subtitle:
                                             Text('Stok: ${r['available']}')))
                                     .toList())

@@ -37,6 +37,9 @@ class Sale {
   final double total;
   final List<SaleItem> items;
   final String status; // pending, diproses, selesai
+  final String paymentMethod; // tunai, qris
+  final String? senderName; // nama pengirim untuk QRIS
+  final String? paymentProofUrl; // URL bukti pembayaran
 
   Sale(
       {required this.id,
@@ -45,7 +48,10 @@ class Sale {
       required this.date,
       required this.total,
       required this.items,
-      this.status = 'pending'});
+      this.status = 'pending',
+      this.paymentMethod = 'tunai',
+      this.senderName,
+      this.paymentProofUrl});
 
   factory Sale.fromMap(String id, Map<String, dynamic> m) {
     DateTime parsedDate = DateTime.now();
@@ -63,6 +69,9 @@ class Sale {
       date: parsedDate,
       total: (m['total'] ?? 0).toDouble(),
       status: m['status'] ?? 'pending',
+      paymentMethod: m['paymentMethod'] ?? 'tunai',
+      senderName: m['senderName'],
+      paymentProofUrl: m['paymentProofUrl'],
       items: (m['items'] as List<dynamic>?)
               ?.map((e) => SaleItem.fromMap(Map<String, dynamic>.from(e)))
               .toList() ??
@@ -76,6 +85,9 @@ class Sale {
         'date': date.toIso8601String(),
         'total': total,
         'status': status,
+        'paymentMethod': paymentMethod,
+        'senderName': senderName,
+        'paymentProofUrl': paymentProofUrl,
         'items': items.map((e) => e.toMap()).toList(),
       };
 }

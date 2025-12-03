@@ -34,6 +34,37 @@ class _AdminRiwayatPenjualanState extends State<AdminRiwayatPenjualan> {
               Text('Tanggal: $dateStr'),
               const SizedBox(height: 8),
               Text('Status: ${sale.status}'),
+              const SizedBox(height: 8),
+              Text(
+                  'Metode Pembayaran: ${sale.paymentMethod == 'qris' ? 'QRIS' : 'Tunai'}'),
+              if (sale.paymentMethod == 'qris' && sale.senderName != null) ...[
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade50,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.person,
+                          color: Color(0xFF1E40AF), size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Pengirim: ${sale.senderName}',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E40AF),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               const SizedBox(height: 12),
               const Text('Item:',
                   style: TextStyle(fontWeight: FontWeight.bold)),

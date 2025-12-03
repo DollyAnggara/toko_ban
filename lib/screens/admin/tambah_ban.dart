@@ -17,6 +17,7 @@ class AdminTambahBan extends StatefulWidget {
 class _AdminTambahBanState extends State<AdminTambahBan> {
   final _formKey = GlobalKey<FormState>();
   final _brandController = TextEditingController();
+  final _seriesController = TextEditingController();
   final _sizeController = TextEditingController();
   final _priceController = TextEditingController();
   final _stockController = TextEditingController();
@@ -31,6 +32,7 @@ class _AdminTambahBanState extends State<AdminTambahBan> {
       final newTire = Tire(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         brand: _brandController.text.trim(),
+        series: _seriesController.text.trim(),
         size: _sizeController.text.trim(),
         price: int.parse(_priceController.text),
         stock: int.parse(_stockController.text),
@@ -89,6 +91,11 @@ class _AdminTambahBanState extends State<AdminTambahBan> {
                   label: 'Merek Ban',
                   controller: _brandController,
                   hint: 'Contoh: Bridgestone'),
+              const SizedBox(height: 16),
+              _buildInputField(
+                  label: 'Seri Ban',
+                  controller: _seriesController,
+                  hint: 'Contoh: Turanza'),
               const SizedBox(height: 16),
               _buildInputField(
                   label: 'Ukuran Ban',

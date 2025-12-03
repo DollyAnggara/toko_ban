@@ -2,3 +2,4 @@ include: package:flutter_lints/flutter.yaml
 analyzer:
   errors:
     unused_import: ignore
+    depend_on_referenced_packages: ignore

@@ -3,6 +3,7 @@ import '../../models/user_model.dart';
 import '../../models/tire_model.dart';
 import '../../services/database_service.dart';
 import '../../widgets/nav_scaffold.dart';
+import 'edit_ban.dart';
 
 class AdminDataBan extends StatefulWidget {
   final UserModel user;
@@ -104,7 +105,9 @@ class _AdminDataBanState extends State<AdminDataBan> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            tire.brand,
+                            tire.series.isNotEmpty
+                                ? '${tire.brand} ${tire.series}'
+                                : tire.brand,
                             style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -140,10 +143,31 @@ class _AdminDataBanState extends State<AdminDataBan> {
                           ),
                         ),
                         const SizedBox(height: 8),
-                        IconButton(
-                          icon: const Icon(Icons.delete_outline,
-                              color: Colors.red),
-                          onPressed: () => _deleteTire(tire.id),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.edit_outlined,
+                                  color: Color(0xFF1E40AF)),
+                              onPressed: () async {
+                                final result = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        AdminEditTireScreen(tire: tire),
+                                  ),
+                                );
+                                if (result == true) {
+                                  // Refresh handled by StreamBuilder
+                                }
+                              },
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline,
+                                  color: Colors.red),
+                              onPressed: () => _deleteTire(tire.id),
+                            ),
+                          ],
                         ),
                       ],
                     ),

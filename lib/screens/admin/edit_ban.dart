@@ -3,16 +3,16 @@ import 'package:flutter/services.dart';
 import '../../models/tire_model.dart';
 import '../../services/database_service.dart';
 
-class EditTireScreen extends StatefulWidget {
+class AdminEditTireScreen extends StatefulWidget {
   final Tire tire;
 
-  const EditTireScreen({super.key, required this.tire});
+  const AdminEditTireScreen({super.key, required this.tire});
 
   @override
-  _EditTireScreenState createState() => _EditTireScreenState();
+  _AdminEditTireScreenState createState() => _AdminEditTireScreenState();
 }
 
-class _EditTireScreenState extends State<EditTireScreen> {
+class _AdminEditTireScreenState extends State<AdminEditTireScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _brandController = TextEditingController();
   final TextEditingController _seriesController = TextEditingController();
@@ -32,9 +32,9 @@ class _EditTireScreenState extends State<EditTireScreen> {
     _stockController.text = widget.tire.stock.toString();
 
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Color(0xFF1E40AF), // Biru tua
-      statusBarIconBrightness: Brightness.light, // Ikon putih
-      systemNavigationBarColor: Colors.white, // Warna bar bawah
+      statusBarColor: Color(0xFF1E40AF),
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.white,
       systemNavigationBarIconBrightness: Brightness.dark,
     ));
   }
@@ -50,7 +50,7 @@ class _EditTireScreenState extends State<EditTireScreen> {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 16),
               decoration: const BoxDecoration(
-                color: Color(0xFF1E40AF), // biru tua
+                color: Color(0xFF1E40AF),
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(10),
                   bottomRight: Radius.circular(10),

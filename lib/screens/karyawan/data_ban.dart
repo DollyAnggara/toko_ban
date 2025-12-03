@@ -93,11 +93,15 @@ class _TireListScreenState extends State<TireListScreen> {
                 if (q.isNotEmpty) {
                   tires = tires.where((tire) {
                     final matchesBrand = tire.brand.toLowerCase().contains(q);
+                    final matchesSeries = tire.series.toLowerCase().contains(q);
                     final matchesSize =
                         tire.size.toString().toLowerCase().contains(q);
                     final matchesPrice =
                         tire.price.toString().toLowerCase().contains(q);
-                    return matchesBrand || matchesSize || matchesPrice;
+                    return matchesBrand ||
+                        matchesSeries ||
+                        matchesSize ||
+                        matchesPrice;
                   }).toList();
                 }
 
@@ -129,7 +133,9 @@ class _TireListScreenState extends State<TireListScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    tire.brand,
+                                    tire.series.isNotEmpty
+                                        ? '${tire.brand} ${tire.series}'
+                                        : tire.brand,
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
@@ -232,7 +238,8 @@ class _TireListScreenState extends State<TireListScreen> {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Hapus Ban'),
-          content: Text('Apakah Anda yakin ingin menghapus ${tire.brand}?'),
+          content: Text(
+              'Apakah Anda yakin ingin menghapus ${tire.series.isNotEmpty ? '${tire.brand} ${tire.series}' : tire.brand}?'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),

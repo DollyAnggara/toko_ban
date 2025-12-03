@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
+import 'dart:typed_data';
 import '../../models/user_model.dart';
 import '../../widgets/nav_scaffold.dart';
 import '../../services/database_service.dart';
@@ -47,7 +49,13 @@ class _SalesInputScreenState extends State<SalesInputScreen> {
                         value: _selectedStatus,
                         isExpanded: true,
                         dropdownColor: Colors.white,
-                        items: ['Semua', 'Pending', 'Diproses', 'Selesai']
+                        items: [
+                          'Semua',
+                          'Pending',
+                          'Diproses',
+                          'Selesai',
+                          'Ditolak'
+                        ]
                             .map((s) =>
                                 DropdownMenuItem(value: s, child: Text(s)))
                             .toList(),
@@ -169,6 +177,10 @@ class _SalesInputScreenState extends State<SalesInputScreen> {
       case 'selesai':
         statusColor = Colors.green;
         statusIcon = Icons.check_circle;
+        break;
+      case 'ditolak':
+        statusColor = Colors.red;
+        statusIcon = Icons.cancel;
         break;
       default: // pending
         statusColor = Colors.orange;
@@ -301,45 +313,187 @@ class _SalesInputScreenState extends State<SalesInputScreen> {
       ),
       builder: (ctx) {
         return DraggableScrollableSheet(
-          initialChildSize: 0.7,
+          initialChildSize: 0.9,
           minChildSize: 0.5,
           maxChildSize: 0.95,
           expand: false,
           builder: (_, controller) {
-            return Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(2),
+            return SingleChildScrollView(
+              controller: controller,
+              child: Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  Text('Detail Pesanan',
-                      style: const TextStyle(
-                          fontSize: 20, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 16),
-                  _detailRow('No. Invoice', sale.invoiceNo),
-                  _detailRow('Pelanggan', sale.customerName),
-                  _detailRow(
-                      'Tanggal', sale.date.toLocal().toString().split('.')[0]),
-                  _detailRow('Status',
-                      sale.status[0].toUpperCase() + sale.status.substring(1)),
-                  const Divider(height: 24),
-                  const Text('Item Pesanan',
-                      style:
-                          TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: ListView.separated(
+                    const SizedBox(height: 20),
+                    Text('Detail Pesanan',
+                        style: const TextStyle(
+                            fontSize: 20, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 16),
+                    _detailRow('No. Invoice', sale.invoiceNo),
+                    _detailRow('Pelanggan', sale.customerName),
+                    _detailRow('Tanggal',
+                        sale.date.toLocal().toString().split('.')[0]),
+                    _detailRow(
+                        'Status',
+                        sale.status[0].toUpperCase() +
+                            sale.status.substring(1)),
+                    _detailRow('Metode Pembayaran',
+                        sale.paymentMethod == 'qris' ? 'QRIS' : 'Tunai'),
+                    if (sale.paymentMethod == 'qris' && sale.senderName != null)
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.blue.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.person,
+                                color: Color(0xFF1E40AF), size: 20),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Nama Pengirim QRIS:',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                  Text(
+                                    sale.senderName!,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: Color(0xFF1E40AF),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (sale.paymentMethod == 'qris' &&
+                        sale.paymentProofUrl != null)
+                      Container(
+                        margin: const EdgeInsets.only(top: 8),
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.green.shade200),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Row(
+                              children: [
+                                Icon(Icons.receipt,
+                                    color: Color(0xFF059669), size: 20),
+                                SizedBox(width: 8),
+                                Text(
+                                  'Bukti Pembayaran:',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFF059669),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(
+                                  maxHeight:
+                                      120, // Limit height to prevent overflow
+                                ),
+                                child: Image.memory(
+                                  base64Decode(sale.paymentProofUrl!),
+                                  width: double.infinity,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      height: 100,
+                                      alignment: Alignment.center,
+                                      child: const Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Icon(Icons.error, color: Colors.red),
+                                          SizedBox(height: 4),
+                                          Text('Gagal memuat gambar',
+                                              style: TextStyle(fontSize: 12)),
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            OutlinedButton.icon(
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (ctx) => Dialog(
+                                    child: Column(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        AppBar(
+                                          title: const Text('Bukti Pembayaran'),
+                                          leading: IconButton(
+                                            icon: const Icon(Icons.close),
+                                            onPressed: () => Navigator.pop(ctx),
+                                          ),
+                                        ),
+                                        InteractiveViewer(
+                                          child: Image.memory(
+                                            base64Decode(sale.paymentProofUrl!),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.zoom_in, size: 18),
+                              label: const Text('Lihat Detail'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF059669),
+                                side:
+                                    const BorderSide(color: Color(0xFF059669)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    const Divider(height: 24),
+                    const Text('Item Pesanan',
+                        style: TextStyle(
+                            fontSize: 16, fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 12),
+                    ListView.separated(
                       controller: controller,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
                       itemCount: sale.items.length,
                       separatorBuilder: (_, __) => const Divider(),
                       itemBuilder: (_, i) {
@@ -356,121 +510,202 @@ class _SalesInputScreenState extends State<SalesInputScreen> {
                         );
                       },
                     ),
-                  ),
-                  const Divider(height: 24),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Total',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      Text('Rp ${sale.total.toStringAsFixed(0)}',
-                          style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF1E40AF))),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Status update buttons based on current status
-                  if (sale.status == 'pending')
+                    const Divider(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Total',
+                            style: TextStyle(
+                                fontSize: 18, fontWeight: FontWeight.bold)),
+                        Text('Rp ${sale.total.toStringAsFixed(0)}',
+                            style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E40AF))),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    // Status update buttons based on current status
+                    if (sale.status == 'pending') ...[
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            await _db.updateSaleStatus(sale.id, 'diproses');
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Pesanan sedang diproses')),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.sync, color: Colors.white),
+                          label: const Text('Proses Pesanan',
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final confirm = await showDialog<bool>(
+                              context: ctx,
+                              builder: (dialogCtx) => AlertDialog(
+                                title: const Text('Tolak Pesanan'),
+                                content: const Text(
+                                  'Apakah Anda yakin ingin menolak pesanan ini? Stok akan dikembalikan.',
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () =>
+                                        Navigator.pop(dialogCtx, false),
+                                    child: const Text('Batal'),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: () =>
+                                        Navigator.pop(dialogCtx, true),
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.red,
+                                    ),
+                                    child: const Text('Tolak',
+                                        style: TextStyle(color: Colors.white)),
+                                  ),
+                                ],
+                              ),
+                            );
+
+                            if (confirm == true) {
+                              await _db.updateSaleStatus(sale.id, 'ditolak');
+                              if (ctx.mounted) Navigator.pop(ctx);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Pesanan ditolak'),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            }
+                          },
+                          icon: const Icon(Icons.cancel),
+                          label: const Text('Tolak Pesanan',
+                              style: TextStyle(fontSize: 16)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side: const BorderSide(color: Colors.red),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ] else if (sale.status == 'diproses')
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () async {
+                            await _db.updateSaleStatus(sale.id, 'selesai');
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            if (mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                    content: Text('Pesanan telah selesai')),
+                              );
+                            }
+                          },
+                          icon: const Icon(Icons.check_circle,
+                              color: Colors.white),
+                          label: const Text('Selesaikan Pesanan',
+                              style:
+                                  TextStyle(fontSize: 16, color: Colors.white)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      )
+                    else if (sale.status == 'selesai')
+                      SizedBox(
+                        width: double.infinity,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.green, width: 2),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.check_circle,
+                                  color: Colors.green, size: 20),
+                              SizedBox(width: 8),
+                              Text('Pesanan Selesai',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.green)),
+                            ],
+                          ),
+                        ),
+                      )
+                    else if (sale.status == 'ditolak')
+                      SizedBox(
+                        width: double.infinity,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.red, width: 2),
+                          ),
+                          child: const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.cancel, color: Colors.red, size: 20),
+                              SizedBox(width: 8),
+                              Text('Pesanan Ditolak',
+                                  style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.red)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          await _db.updateSaleStatus(sale.id, 'diproses');
-                          if (ctx.mounted) Navigator.pop(ctx);
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Pesanan sedang diproses')),
-                            );
-                          }
-                        },
-                        icon: const Icon(Icons.sync, color: Colors.white),
-                        label: const Text('Proses Pesanan',
-                            style:
-                                TextStyle(fontSize: 16, color: Colors.white)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
+                          side: const BorderSide(color: Color(0xFF1E40AF)),
                         ),
-                      ),
-                    )
-                  else if (sale.status == 'diproses')
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton.icon(
-                        onPressed: () async {
-                          await _db.updateSaleStatus(sale.id, 'selesai');
-                          if (ctx.mounted) Navigator.pop(ctx);
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                  content: Text('Pesanan telah selesai')),
-                            );
-                          }
-                        },
-                        icon:
-                            const Icon(Icons.check_circle, color: Colors.white),
-                        label: const Text('Selesaikan Pesanan',
-                            style:
-                                TextStyle(fontSize: 16, color: Colors.white)),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                    )
-                  else
-                    SizedBox(
-                      width: double.infinity,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.green, width: 2),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.check_circle,
-                                color: Colors.green, size: 20),
-                            SizedBox(width: 8),
-                            Text('Pesanan Selesai',
-                                style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.green)),
-                          ],
-                        ),
+                        child: const Text('Tutup',
+                            style: TextStyle(
+                                fontSize: 16, color: Color(0xFF1E40AF))),
                       ),
                     ),
-                  const SizedBox(height: 8),
-                  SizedBox(
-                    width: double.infinity,
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        side: const BorderSide(color: Color(0xFF1E40AF)),
-                      ),
-                      child: const Text('Tutup',
-                          style: TextStyle(
-                              fontSize: 16, color: Color(0xFF1E40AF))),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           },
