@@ -40,11 +40,53 @@ class _BeliBanScreenState extends State<BeliBanScreen> {
     });
   }
 
+  // Helper method to safely find tire (returns null if deleted)
+  Tire? _findTire(List<Tire> tires, String id) {
+    try {
+      return tires.firstWhere((t) => t.id == id);
+    } catch (e) {
+      return null; // Tire was deleted from database
+    }
+  }
+
+  // Clean cart by removing references to deleted tires
+  void _cleanCart(List<Tire> tires) {
+    final deletedIds = <String>[];
+    for (final id in _cart.keys) {
+      if (_findTire(tires, id) == null) {
+        deletedIds.add(id);
+      }
+    }
+    if (deletedIds.isNotEmpty) {
+      // Use post frame callback to avoid calling setState during build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {
+            for (final id in deletedIds) {
+              _cart.remove(id);
+            }
+          });
+          // Show notification
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  '${deletedIds.length} item dihapus dari keranjang (produk tidak tersedia)'),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      });
+    }
+  }
+
   double _cartTotal(List<Tire> tires) {
     double sum = 0;
     for (final entry in _cart.entries) {
-      final tire = tires.firstWhere((t) => t.id == entry.key);
-      sum += tire.price.toDouble() * entry.value;
+      final tire = _findTire(tires, entry.key);
+      if (tire != null) {
+        sum += tire.price.toDouble() * entry.value;
+      }
     }
     return sum;
   }
@@ -55,23 +97,27 @@ class _BeliBanScreenState extends State<BeliBanScreen> {
     // Build sale
     final items = <SaleItem>[];
     for (final e in _cart.entries) {
-      final tire = tires.firstWhere((t) => t.id == e.key);
-      items.add(SaleItem(
-          tireId: tire.id,
-          name: tire.series.isNotEmpty
-              ? '${tire.brand} ${tire.series} ${tire.size}'
-              : '${tire.brand} ${tire.size}',
-          qty: e.value,
-          price: tire.price.toDouble()));
+      final tire = _findTire(tires, e.key);
+      if (tire != null) {
+        items.add(SaleItem(
+            tireId: tire.id,
+            name: tire.series.isNotEmpty
+                ? '${tire.brand} ${tire.series} ${tire.size}'
+                : '${tire.brand} ${tire.size}',
+            qty: e.value,
+            price: tire.price.toDouble()));
+      }
     }
     final total = _cartTotal(tires);
 
     print('🛒 Checkout Debug:');
     print('Cart items: ${_cart.length}');
     for (final e in _cart.entries) {
-      final tire = tires.firstWhere((t) => t.id == e.key);
-      print(
-          '  - ${tire.series.isNotEmpty ? '${tire.brand} ${tire.series}' : tire.brand} ${tire.size}: ${e.value} x Rp${tire.price} = Rp${tire.price * e.value}');
+      final tire = _findTire(tires, e.key);
+      if (tire != null) {
+        print(
+            '  - ${tire.series.isNotEmpty ? '${tire.brand} ${tire.series}' : tire.brand} ${tire.size}: ${e.value} x Rp${tire.price} = Rp${tire.price * e.value}');
+      }
     }
     print('Calculated total: Rp$total');
 
@@ -95,15 +141,17 @@ class _BeliBanScreenState extends State<BeliBanScreen> {
     try {
       await _db.addSale(sale, widget.user.uid);
       for (final e in _cart.entries) {
-        final tire = tires.firstWhere((t) => t.id == e.key);
-        final updated = Tire(
-            id: tire.id,
-            brand: tire.brand,
-            series: tire.series,
-            size: tire.size,
-            price: tire.price,
-            stock: tire.stock - e.value);
-        await _db.updateTire(updated);
+        final tire = _findTire(tires, e.key);
+        if (tire != null) {
+          final updated = Tire(
+              id: tire.id,
+              brand: tire.brand,
+              series: tire.series,
+              size: tire.size,
+              price: tire.price,
+              stock: tire.stock - e.value);
+          await _db.updateTire(updated);
+        }
       }
 
       setState(() => _cart.clear());
@@ -119,10 +167,13 @@ class _BeliBanScreenState extends State<BeliBanScreen> {
 
   Future<bool?> _showCheckoutDialog(List<Tire> tires) async {
     if (_cart.isEmpty) return false;
-    final items = _cart.entries.map((e) {
-      final tire = tires.firstWhere((t) => t.id == e.key);
-      return {'tire': tire, 'qty': e.value};
-    }).toList();
+    final items = <Map<String, dynamic>>[];
+    for (final e in _cart.entries) {
+      final tire = _findTire(tires, e.key);
+      if (tire != null) {
+        items.add({'tire': tire, 'qty': e.value});
+      }
+    }
 
     var confirming = false;
     String tempPaymentMethod = _paymentMethod;
@@ -763,6 +814,11 @@ class _BeliBanScreenState extends State<BeliBanScreen> {
           final allTires = snap.data ?? [];
           final brands = allTires.map((t) => t.brand).toSet().toList();
 
+          // Clean cart of deleted tire references
+          if (allTires.isNotEmpty && _cart.isNotEmpty) {
+            _cleanCart(allTires);
+          }
+
           // Filter tires by selected brand
           var tires = allTires;
           if (selectedBrand != null && selectedBrand != '') {
@@ -811,48 +867,68 @@ class _BeliBanScreenState extends State<BeliBanScreen> {
                 ),
               ),
               Expanded(
-                child: ListView.separated(
-                  padding: const EdgeInsets.all(12),
-                  itemCount: tires.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                  itemBuilder: (context, i) {
-                    final t = tires[i];
-                    final qty = _cart[t.id] ?? 0;
-                    return Card(
-                      color: Colors.white,
-                      child: ListTile(
-                        title: Text(t.series.isNotEmpty
-                            ? '${t.brand} ${t.series} ${t.size}'
-                            : '${t.brand} ${t.size}'),
-                        subtitle: Text(
-                            'Rp ${t.price.toStringAsFixed(0)} • Stok: ${t.stock}'),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
+                child: tires.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            if (qty > 0) ...[
-                              IconButton(
-                                  onPressed: () => _removeFromCart(t),
-                                  icon:
-                                      const Icon(Icons.remove_circle_outline)),
-                              Text(qty.toString()),
-                              IconButton(
-                                  onPressed: () => _addToCart(t),
-                                  icon: const Icon(Icons.add_circle_outline)),
-                            ] else ...[
-                              ElevatedButton(
-                                  onPressed:
-                                      t.stock > 0 ? () => _addToCart(t) : null,
-                                  style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF1E40AF)),
-                                  child: const Text('Beli',
-                                      style: TextStyle(color: Colors.white)))
-                            ]
+                            Icon(Icons.shopping_cart_outlined,
+                                size: 64, color: Colors.grey[400]),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Tidak ada ban tersedia',
+                              style: TextStyle(
+                                  fontSize: 16, color: Colors.grey[600]),
+                            ),
                           ],
                         ),
+                      )
+                    : ListView.separated(
+                        padding: const EdgeInsets.all(12),
+                        itemCount: tires.length,
+                        separatorBuilder: (_, __) => const SizedBox(height: 8),
+                        itemBuilder: (context, i) {
+                          final t = tires[i];
+                          final qty = _cart[t.id] ?? 0;
+                          return Card(
+                            color: Colors.white,
+                            child: ListTile(
+                              title: Text(t.series.isNotEmpty
+                                  ? '${t.brand} ${t.series} ${t.size}'
+                                  : '${t.brand} ${t.size}'),
+                              subtitle: Text(
+                                  'Rp ${t.price.toStringAsFixed(0)} • Stok: ${t.stock}'),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (qty > 0) ...[
+                                    IconButton(
+                                        onPressed: () => _removeFromCart(t),
+                                        icon: const Icon(
+                                            Icons.remove_circle_outline)),
+                                    Text(qty.toString()),
+                                    IconButton(
+                                        onPressed: () => _addToCart(t),
+                                        icon: const Icon(
+                                            Icons.add_circle_outline)),
+                                  ] else ...[
+                                    ElevatedButton(
+                                        onPressed: t.stock > 0
+                                            ? () => _addToCart(t)
+                                            : null,
+                                        style: ElevatedButton.styleFrom(
+                                            backgroundColor:
+                                                const Color(0xFF1E40AF)),
+                                        child: const Text('Beli',
+                                            style:
+                                                TextStyle(color: Colors.white)))
+                                  ]
+                                ],
+                              ),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
               ),
               if (_cart.isNotEmpty)
                 Container(

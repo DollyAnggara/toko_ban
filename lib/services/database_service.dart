@@ -51,8 +51,29 @@ class DatabaseService {
 
   // Get all tires across all users (for pelanggan browsing)
   Stream<List<Tire>> getAllTires() {
-    return _firestore.collection('tires').snapshots().map((snapshot) =>
-        snapshot.docs.map((doc) => Tire.fromMap(doc.data())).toList());
+    return _firestore.collection('tires').snapshots().map((snapshot) {
+      return snapshot.docs
+          .map((doc) {
+            try {
+              final data = doc.data();
+              // Validate that essential fields exist
+              if (data['brand'] == null ||
+                  data['brand'].toString().trim().isEmpty ||
+                  data['size'] == null ||
+                  data['size'].toString().trim().isEmpty) {
+                print('⚠️ Skipping invalid tire document: ${doc.id}');
+                return null;
+              }
+              return Tire.fromMap(data);
+            } catch (e) {
+              print('⚠️ Error parsing tire document ${doc.id}: $e');
+              return null;
+            }
+          })
+          .where((tire) => tire != null)
+          .cast<Tire>()
+          .toList();
+    });
   }
 
   // Sales: add a sale document and stream sales for a user
